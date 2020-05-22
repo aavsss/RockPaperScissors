@@ -16,6 +16,11 @@ import java.util.List;
 
 public class CustomAdapter extends ArrayAdapter<CustomEntry> {
 
+    /**
+     * Constructor
+     * @param context of the activity for which data is populated
+     * @param customEntries data to be populated is supplied through here.
+     */
     public CustomAdapter(@NonNull Context context, List<CustomEntry> customEntries) {
         super(context, 0,  customEntries);
     }

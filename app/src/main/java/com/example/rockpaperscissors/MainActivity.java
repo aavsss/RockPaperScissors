@@ -1,3 +1,4 @@
+
 package com.example.rockpaperscissors;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -69,6 +70,11 @@ public class MainActivity extends AppCompatActivity implements PopupMenu.OnMenuI
 
     }
 
+    /**
+     * Used to be onCreateLoader() and its following method. Replaced by this.
+     * Method reponsible for using the ViewModel and LiveData to keep the view updated
+     * and for handling the configuration changes.
+     */
     private void setUpViewModel(){
         CatalogViewModel viewModel = ViewModelProviders.of(this).get(CatalogViewModel.class);
         viewModel.getContacts().observe(this, new Observer<List<CustomEntry>>() {
@@ -232,6 +238,9 @@ public class MainActivity extends AppCompatActivity implements PopupMenu.OnMenuI
         new DeleteAllContacts(getApplicationContext()).execute();
     }
 
+    /**
+     * Async class to insert dummy task into the database
+     */
     private static class InsertCustomTask extends AsyncTask<Void, Void, Void>{
 
         final CustomEntry customEntry = new CustomEntry("Aavash", "Sthapit", "Won");
@@ -249,6 +258,9 @@ public class MainActivity extends AppCompatActivity implements PopupMenu.OnMenuI
         }
     }
 
+    /**
+     * Async class to delete all contacts from the database
+     */
     private static class DeleteAllContacts extends AsyncTask<Void, Void, Void>{
         private final WeakReference<Context> weakReference;
 
@@ -264,6 +276,9 @@ public class MainActivity extends AppCompatActivity implements PopupMenu.OnMenuI
         }
     }
 
+    /**
+     * Async class to play rock, paper, scissors, lizard, spock
+     */
     private static class PlayCustomGame extends AsyncTask<CustomEntry, Void, Long>{
         private final WeakReference<Context> weakReference;
         private Activity activity;
