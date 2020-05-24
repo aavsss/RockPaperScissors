@@ -8,6 +8,7 @@
 package com.example.rockpaperscissors;
 
 import android.app.Application;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
@@ -15,6 +16,8 @@ import androidx.lifecycle.LiveData;
 
 import com.example.rockpaperscissors.data.CustomDatabase;
 import com.example.rockpaperscissors.data.CustomEntry;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.List;
 
@@ -30,6 +33,7 @@ public class CatalogViewModel extends AndroidViewModel {
     //Constructor with Application context to initialize database
     public CatalogViewModel(@NonNull Application application){
         super(application);
+
         CustomDatabase customDatabase =
                 CustomDatabase.getInstance(this.getApplication());
         contacts = customDatabase.customDao().loadAllContacts();

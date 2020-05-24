@@ -1,31 +1,46 @@
 
-package com.example.rockpaperscissors;
+package com.example.rockpaperscissors.Firebase;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.lifecycle.ViewModelProviders;
+
 import android.app.Activity;
 import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ListView;
 import android.widget.PopupMenu;
+
+import com.example.rockpaperscissors.CatalogViewModel;
+import com.example.rockpaperscissors.CustomAdapter;
+import com.example.rockpaperscissors.R;
 import com.example.rockpaperscissors.data.CustomDatabase;
 import com.example.rockpaperscissors.data.CustomEntry;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.j2objc.annotations.Weak;
+
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Observable;
 import java.util.Random;
 
-public class MainActivity extends AppCompatActivity implements PopupMenu.OnMenuItemClickListener {
+public class RPSMainActivity extends AppCompatActivity implements PopupMenu.OnMenuItemClickListener {
 
-    private CustomAdapter mAdapter;
-    private CustomDatabase mDb;
     private ListView customListView;
+    private RPSViewModel model;
+    private FirebaseFirestore firebaseFirestore;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,8 +50,8 @@ public class MainActivity extends AppCompatActivity implements PopupMenu.OnMenuI
         //Button to play
         FloatingActionButton fabButton = findViewById(R.id.fab);
         fabButton.setOnClickListener(v -> {
-            PopupMenu popupMenu = new PopupMenu(MainActivity.this,v);
-            popupMenu.setOnMenuItemClickListener(MainActivity.this);
+            PopupMenu popupMenu = new PopupMenu(RPSMainActivity.this,v);
+            popupMenu.setOnMenuItemClickListener(RPSMainActivity.this);
             popupMenu.inflate(R.menu.menu_option);
             popupMenu.show();
         });
@@ -48,13 +63,24 @@ public class MainActivity extends AppCompatActivity implements PopupMenu.OnMenuI
         View emptyView = findViewById(R.id.empty_view);
         customListView.setEmptyView(emptyView);
 
-        //Setup an Adapter to create a list item for each row of <custom> data in the Cursor.
-        //There is no <custom> data yet(until the loader finishes) so pass in null for the Cursor
-        mAdapter = new CustomAdapter(this, new ArrayList<CustomEntry>());
-        customListView.setAdapter(mAdapter);
+        firebaseFirestore = FirebaseFirestore.getInstance();
+        model = new ViewModelProvider(this,
+                new ViewModelProvider.NewInstanceFactory()).get(RPSViewModel.class);
 
-        mDb = CustomDatabase.getInstance(getApplicationContext());
-        setUpViewModel();
+        RPSAdapter rpsAdapter = new RPSAdapter(this, new ArrayList<RPS>());
+
+        model.getRPSLiveData().observe(this, Observable -> {});
+
+        model.getRPS().observe(this, rps -> {
+            if(rps != null){
+                rpsAdapter.clear();
+                rpsAdapter.addAll(rps);
+                customListView.setAdapter(rpsAdapter);
+            }else{
+                Log.d("TAG", "Awaiting for info");
+            }
+        });
+
 
     }
 
@@ -64,14 +90,16 @@ public class MainActivity extends AppCompatActivity implements PopupMenu.OnMenuI
      * and for handling the configuration changes.
      */
     private void setUpViewModel(){
-        CatalogViewModel viewModel = ViewModelProviders.of(this).get(CatalogViewModel.class);
-        viewModel.getContacts().observe(this, new Observer<List<CustomEntry>>() {
-            @Override
-            public void onChanged(List<CustomEntry> customEntries) {
-                mAdapter = new CustomAdapter(getApplicationContext(), customEntries);
-                customListView.setAdapter(mAdapter);
-            }
-        });
+
+//        RPSViewModel viewModel = ViewModelProviders.of(this).get(RPSViewModel.class);
+//        viewModel.getRPSLiveData().observe(this, Observable -> {});
+//        viewModel.getRPS().observe(this, new Observer<List<RPS>>() {
+//            @Override
+//            public void onChanged(List<RPS> customEntries) {
+//                rpsAdapter = new RPSAdapter(getApplicationContext(), (ArrayList<RPS>) customEntries);
+//                customListView.setAdapter(rpsAdapter);
+//            }
+//        });
     }
 
     @Override
@@ -80,32 +108,32 @@ public class MainActivity extends AppCompatActivity implements PopupMenu.OnMenuI
             case R.id.rock:
                 String responseRock = getRandomlyGeneratedResponse();
                 String resultRock = getResult("Rock", responseRock);
-                CustomEntry rockEntry = new CustomEntry("Rock", responseRock, resultRock);
-                new PlayCustomGame(getApplicationContext(), this).execute(rockEntry);
+                RPS rockPlay = new RPS("Rock", responseRock, resultRock);
+                new PlayCustomFirebaseGame(getApplicationContext()).execute(rockPlay);
                 return true;
             case R.id.paper:
                 String responsePaper = getRandomlyGeneratedResponse();
                 String resultPaper = getResult("Paper", responsePaper);
-                CustomEntry paperEntry = new CustomEntry("Paper", responsePaper, resultPaper);
-                new PlayCustomGame(getApplicationContext(), this).execute(paperEntry);
+                RPS paperPlay = new RPS("Paper", responsePaper, resultPaper);
+                new PlayCustomFirebaseGame(getApplicationContext()).execute(paperPlay);
                 return true;
             case R.id.scissors:
                 String responseScissors = getRandomlyGeneratedResponse();
                 String resultScissors = getResult("Scissors", responseScissors);
-                CustomEntry scissorsEntry = new CustomEntry("Scissors", responseScissors, resultScissors);
-                new PlayCustomGame(getApplicationContext(), this).execute(scissorsEntry);
+                RPS scissorsPlay = new RPS("Scissors", responseScissors, resultScissors);
+                new PlayCustomFirebaseGame(getApplicationContext()).execute(scissorsPlay);
                 return true;
             case R.id.lizard:
                 String responseLizard = getRandomlyGeneratedResponse();
                 String resultLizard = getResult("Lizard", responseLizard);
-                CustomEntry lizardEntry = new CustomEntry("Lizard", responseLizard, resultLizard);
-                new PlayCustomGame(getApplicationContext(), this).execute(lizardEntry);
+                RPS lizardPlay = new RPS("Lizard", responseLizard, resultLizard);
+                new PlayCustomFirebaseGame(getApplicationContext()).execute(lizardPlay);
                 return true;
             case R.id.spock:
                 String responseSpock = getRandomlyGeneratedResponse();
                 String resultSpock = getResult("Spock", responseSpock);
-                CustomEntry spockEntry = new CustomEntry("Spock", responseSpock, resultSpock);
-                new PlayCustomGame(getApplicationContext(), this).execute(spockEntry);
+                RPS spockPlay = new RPS("Spock", responseSpock, resultSpock);
+                new PlayCustomFirebaseGame(getApplicationContext()).execute(spockPlay);
                 return true;
             default:
                 return false;
@@ -206,102 +234,61 @@ public class MainActivity extends AppCompatActivity implements PopupMenu.OnMenuI
         switch (item.getItemId()) {
             // Respond to a click on the "Insert dummy data" menu option
             case R.id.action_insert_dummy_data:
-                insertDummyContact();
+//                insertDummyContact();
                 return true;
             // Respond to a click on the "Delete all entries" menu option
             case R.id.action_delete_all_entries:
                 // Do nothing for now
-                deleteAllContacts();
+//                deleteAllContacts();
                 return true;
         }
         return super.onOptionsItemSelected(item);
     }
 
-    private void insertDummyContact(){
-        new InsertCustomTask(getApplicationContext()).execute();
-    }
+    private static class PlayCustomFirebaseGame extends AsyncTask<RPS, Void, Void> {
 
-    //Helper method to delete all data in the database
-    private void deleteAllContacts() {
-        new DeleteAllContacts(getApplicationContext()).execute();
-    }
-
-    /**
-     * Async class to insert dummy task into the database
-     */
-    private static class InsertCustomTask extends AsyncTask<Void, Void, Void>{
-
-        final CustomEntry customEntry = new CustomEntry("Aavash", "Sthapit", "Won");
         private final WeakReference<Context> weakReference;
 
-        InsertCustomTask(Context appContext){
+        PlayCustomFirebaseGame(Context appContext){
             this.weakReference = new WeakReference<>(appContext);
         }
 
         @Override
-        protected Void doInBackground(Void... voids){
-            CustomDatabase customDatabase = CustomDatabase.getInstance(weakReference.get());
-            customDatabase.customDao().insertContact(customEntry);
+        protected Void doInBackground(RPS... rps){
+            FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
+            firebaseFirestore.collection("game")
+                    .add(RPS.getMappedData(rps[0].getName(), rps[0].getJob(), rps[0].getResult()))
+                    .addOnSuccessListener(documentReference -> Log.d("RPSMAIN", "Document written with ID: " +  documentReference))
+                    .addOnFailureListener(e -> Log.w("RPSMAIN", "Error adding document", e));
+            return null;
+        }
+
+    }
+
+    //Pre-condition: ID Field is created and is unique for each document.
+    private static class DeleteSelectedGame extends AsyncTask<String, Void, Void>{
+        private final WeakReference<Context> weakReference;
+
+        DeleteSelectedGame(Context appContext){
+            this.weakReference = new WeakReference<>(appContext);
+        }
+
+        @Override
+        protected Void doInBackground(String... ids){
+            FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
+            firebaseFirestore.collection("game")
+                    .document(ids[0])
+                    .delete()
+                    .addOnSuccessListener(aVoid -> {
+                        Log.d("RPSMAIN", "DocumentSnapshot successfully deleted!");
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.w("RPSMAIN", "Error deleting document", e);
+                    });
             return null;
         }
     }
 
-    /**
-     * Async class to delete all contacts from the database
-     */
-    private static class DeleteAllContacts extends AsyncTask<Void, Void, Void>{
-        private final WeakReference<Context> weakReference;
-
-        DeleteAllContacts(Context appContext){
-            this.weakReference = new WeakReference<>(appContext);
-        }
-
-        @Override
-        protected Void doInBackground(Void... voids){
-            CustomDatabase customDatabase = CustomDatabase.getInstance(weakReference.get());
-            customDatabase.customDao().deleteAllContacts();
-            return null;
-        }
-    }
-
-    /**
-     * Async class to play rock, paper, scissors, lizard, spock
-     */
-    private static class PlayCustomGame extends AsyncTask<CustomEntry, Void, Long>{
-        private final WeakReference<Context> weakReference;
-        private Activity activity;
-
-        PlayCustomGame(Context appContext, Activity activity){
-            this.weakReference = new WeakReference<>(appContext);
-            this.activity = activity;
-        }
-
-        @Override
-        protected Long doInBackground(CustomEntry... customEntries){
-            CustomDatabase customDatabase = CustomDatabase.getInstance(weakReference.get());
-            return customDatabase.customDao().insertContact(customEntries[0]);
-        }
-
-        @Override
-        protected void onPostExecute(Long result){
-            if(result ==(long) 1){
-//                TextView resultTextView = activity.findViewById()
-            }
-        }
-    }
-
-//    //Getting data from firebase
-//    private Task<String> getRandomStringFromCloud(){
-//        Map<String, Object> data = new HashMap<>();
-//
-//        return firebaseFunctions
-//                .getHttpsCallable("randomResponse")
-//                .call(data)
-//                .continueWith(task -> {
-//                    Map<String, Object> result = (Map<String, Object>)task.getResult().getData();
-//                    return (String) result.get("result");
-//                });
-//    }
 
     private String getRandomlyGeneratedResponse(){
         String[] randomReponse = {"Rock", "Paper","Scissors","Lizard","Spock"};
